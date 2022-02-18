@@ -192,7 +192,7 @@ image_size = 64
 nc = 3
 
 # Size of z latent vector (i.e. size of generator input)
-nz = 100
+nz = 1  # @thoughtcodex / @timeemit -- Modified from 100 to reduce overall size of the model
 
 # Size of feature maps in generator
 ngf = 64
