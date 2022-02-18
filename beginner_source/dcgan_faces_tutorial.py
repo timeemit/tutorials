@@ -501,6 +501,10 @@ optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
 
 
+# @thoughtcodex / @timeemit Modified to export the initialized DCGAN to an ONNX file
+torch.onnx.export(netG, fixed_noise, "DCGAN-init.onnx")
+
+
 ######################################################################
 # Training
 # ~~~~~~~~
@@ -651,6 +655,9 @@ for epoch in range(num_epochs):
             
         iters += 1
 
+
+# @thoughtcodex / @timeemit Modified to export the trained DCGAN to an ONNX file
+torch.onnx.export(netG, fixed_noise, "DCGAN-trained.onnx")
 
 ######################################################################
 # Results
