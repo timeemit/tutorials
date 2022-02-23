@@ -201,7 +201,8 @@ ngf = 64
 ndf = 64
 
 # Number of training epochs
-num_epochs = 5
+# @thoughtcodex / @timeemit Reducing for iteration velocity num_epochs = 5
+num_epochs = 1
 
 # Learning rate for optimizers
 lr = 0.0002
@@ -502,8 +503,8 @@ optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
 
 
 # @thoughtcodex / @timeemit Modified to export the initialized DCGAN to an ONNX file
+torch.save(netG.state_dict(), "DCGAN-init.pickle")
 torch.onnx.export(netG, fixed_noise, "DCGAN-init.onnx")
-
 
 ######################################################################
 # Training
@@ -657,6 +658,7 @@ for epoch in range(num_epochs):
 
 
 # @thoughtcodex / @timeemit Modified to export the trained DCGAN to an ONNX file
+torch.save(netG.state_dict(), "DCGAN-trained.pickle")
 torch.onnx.export(netG, fixed_noise, "DCGAN-trained.onnx")
 
 ######################################################################
