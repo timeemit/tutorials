@@ -493,6 +493,8 @@ criterion = nn.BCELoss()
 # Create batch of latent vectors that we will use to visualize
 #  the progression of the generator
 fixed_noise = torch.randn(64, nz, 1, 1, device=device)
+# @thoughtcodex / @timeemit Create an input for exporting batches of just one
+input_to_export = torch.randn(1, nz, 1, 1, device=device)
 
 # Establish convention for real and fake labels during training
 real_label = 1.
@@ -505,7 +507,7 @@ optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
 
 # @thoughtcodex / @timeemit Modified to export the initialized DCGAN to an ONNX file
 torch.save(netG.state_dict(), "DCGAN-init.pickle")
-torch.onnx.export(netG, fixed_noise, "DCGAN-init.onnx")
+torch.onnx.export(netG, input_to_export, "DCGAN-init.onnx")
 
 ######################################################################
 # Training
@@ -660,7 +662,7 @@ for epoch in range(num_epochs):
 
 # @thoughtcodex / @timeemit Modified to export the trained DCGAN to an ONNX file
 torch.save(netG.state_dict(), "DCGAN-trained.pickle")
-torch.onnx.export(netG, fixed_noise, "DCGAN-trained.onnx")
+torch.onnx.export(netG, input_to_export, "DCGAN-trained.onnx")
 
 ######################################################################
 # Results
