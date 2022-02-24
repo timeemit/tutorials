@@ -186,7 +186,7 @@ batch_size = 128
 
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
-image_size = 16  # @thoughtcodex / @timeemit -- Modified to reduce overall size of the model
+image_size = 8  # @thoughtcodex / @timeemit -- Modified to reduce overall size of the model
 
 # Number of channels in the training images. For color images this is 3
 nc = 3
@@ -336,7 +336,7 @@ class Generator(nn.Module):
         self.ngpu = ngpu
         self.main = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(nz, ngf * 2, 4, 1, 0, bias=False),
+            nn.ConvTranspose2d(nz, ngf, 4, 1, 0, bias=False),
             # nn.ConvTranspose2d( nz, ngf * 8, 4, 1, 0, bias=False),
             # nn.BatchNorm2d(ngf * 8),
             # nn.ReLU(True),
@@ -346,10 +346,10 @@ class Generator(nn.Module):
             # nn.ReLU(True),
             # # state size. (ngf*4) x 8 x 8
             # nn.ConvTranspose2d( ngf * 4, ngf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf * 2),
-            nn.ReLU(True),
-            # state size. (ngf*2) x 16 x 16
-            nn.ConvTranspose2d( ngf * 2, ngf, 4, 2, 1, bias=False),
+            # nn.BatchNorm2d(ngf * 2),
+            # nn.ReLU(True),
+            # # state size. (ngf*2) x 16 x 16
+            # nn.ConvTranspose2d( ngf * 2, ngf, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
             # state size. (ngf) x 32 x 32
@@ -414,9 +414,9 @@ class Discriminator(nn.Module):
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf) x 32 x 32
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 2),
-            nn.LeakyReLU(0.2, inplace=True),
+            # nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            # nn.BatchNorm2d(ndf * 2),
+            # nn.LeakyReLU(0.2, inplace=True),
             # # state size. (ndf*2) x 16 x 16
             # nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
             # nn.BatchNorm2d(ndf * 4),
@@ -426,7 +426,7 @@ class Discriminator(nn.Module):
             # nn.BatchNorm2d(ndf * 8),
             # nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(ndf * 2, 1, 4, 1, 0, bias=False),
+            nn.Conv2d(ndf, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
 
@@ -506,8 +506,8 @@ optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
 
 
 # @thoughtcodex / @timeemit Modified to export the initialized DCGAN to an ONNX file
-torch.save(netG.state_dict(), "DCGAN-init.pickle")
-torch.onnx.export(netG, input_to_export, "DCGAN-init.onnx")
+torch.save(netG.state_dict(), "DCGAN-init-8x8.pickle")
+torch.onnx.export(netG, input_to_export, "DCGAN-init-8x8.onnx")
 
 ######################################################################
 # Training
@@ -661,8 +661,8 @@ for epoch in range(num_epochs):
 
 
 # @thoughtcodex / @timeemit Modified to export the trained DCGAN to an ONNX file
-torch.save(netG.state_dict(), "DCGAN-trained.pickle")
-torch.onnx.export(netG, input_to_export, "DCGAN-trained.onnx")
+torch.save(netG.state_dict(), "DCGAN-trained-8x8.pickle")
+torch.onnx.export(netG, input_to_export, "DCGAN-trained-8x8.onnx")
 
 ######################################################################
 # Results
