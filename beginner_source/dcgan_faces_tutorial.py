@@ -211,7 +211,7 @@ lr = 0.0002
 beta1 = 0.5
 
 # Number of GPUs available. Use 0 for CPU mode.
-ngpu = 1
+ngpu = 0
 
 
 ######################################################################
@@ -335,6 +335,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
+            torch.quantization.QuantStub(),
             # input is Z, going into a convolution
             nn.ConvTranspose2d(nz, ngf, 4, 1, 0, bias=False),
             # nn.ConvTranspose2d( nz, ngf * 8, 4, 1, 0, bias=False),
@@ -354,8 +355,9 @@ class Generator(nn.Module):
             nn.ReLU(True),
             # state size. (ngf) x 32 x 32
             nn.ConvTranspose2d( ngf, nc, 4, 2, 1, bias=False),
-            nn.Tanh()
+            nn.Tanh(),
             # state size. (nc) x 64 x 64
+            torch.quantization.DeQuantStub(),
         )
 
     def forward(self, input):
@@ -381,6 +383,12 @@ netG.apply(weights_init)
 
 # Print the model
 print(netG)
+
+# @timeemit / @thoughtcodex QAT
+netG.qconfig = torch.quantization.get_default_qat_qconfig('qnnpack')
+netG = torch.quantization.prepare_qat(netG)
+torch.backends.quantized.engine = 'qnnpack'
+netG = netG.train()
 
 
 ######################################################################
@@ -506,8 +514,8 @@ optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
 
 
 # @thoughtcodex / @timeemit Modified to export the initialized DCGAN to an ONNX file
-torch.save(netG.state_dict(), "DCGAN-init-8x8.pickle")
-torch.onnx.export(netG, input_to_export, "DCGAN-init-8x8.onnx")
+torch.save(netG.state_dict(), "DCGAN-init-8x8-quantized.pickle")
+# torch.onnx.export(netG, input_to_export, "DCGAN-init-8x8-quantized.onnx")
 
 ######################################################################
 # Training
@@ -659,10 +667,15 @@ for epoch in range(num_epochs):
             
         iters += 1
 
+        break
 
 # @thoughtcodex / @timeemit Modified to export the trained DCGAN to an ONNX file
-torch.save(netG.state_dict(), "DCGAN-trained-8x8.pickle")
-torch.onnx.export(netG, input_to_export, "DCGAN-trained-8x8.onnx")
+netG = netG.eval()
+netG = torch.quantization.convert(netG)
+netG = torch.jit.trace(netG, example_inputs=[fixed_noise])
+torch.save(netG.state_dict(), "DCGAN-trained-8x8-quantized.pickle")
+torch.onnx.export(netG, input_to_export, "DCGAN-trained-8x8-quantized.onnx")
+# torch.onnx.export(netG, input_to_export, "DCGAN-trained-8x8-quantized.onnx", operator_export_type=torch.onnx.OperatorExportTypes.ONNX_ATEN_FALLBACK)
 
 ######################################################################
 # Results
