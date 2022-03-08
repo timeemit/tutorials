@@ -189,16 +189,16 @@ batch_size = 128
 image_size = 8  # @thoughtcodex / @timeemit -- Modified to reduce overall size of the model
 
 # Number of channels in the training images. For color images this is 3
-nc = 3
+nc = 1  # @thoughtcodex / @timeemit -- Greyscale to reduce overall size of the model
 
 # Size of z latent vector (i.e. size of generator input)
-nz = 100  # @thoughtcodex / @timeemit -- Modified from 100 to reduce overall size of the model
+nz = 1  # @thoughtcodex / @timeemit -- Modified from 100 to reduce overall size of the model
 
 # Size of feature maps in generator
-ngf = 64
+ngf = 32
 
 # Size of feature maps in discriminator
-ndf = 64
+ndf = 32
 
 # Number of training epochs
 # @thoughtcodex / @timeemit Reducing for iteration velocity num_epochs = 5
@@ -251,8 +251,10 @@ dataset = dset.ImageFolder(root=dataroot,
                            transform=transforms.Compose([
                                transforms.Resize(image_size),
                                transforms.CenterCrop(image_size),
+                               transforms.Grayscale(),  # @thoughtcodex / @timeemit Grayscale
                                transforms.ToTensor(),
-                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                               transforms.Normalize((0.5), (0.5)),  # @thoughtcodex / @timeemit Grayscale
+                               # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                            ]))
 # Create the dataloader
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
@@ -506,8 +508,8 @@ optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
 
 
 # @thoughtcodex / @timeemit Modified to export the initialized DCGAN to an ONNX file
-torch.save(netG.state_dict(), "DCGAN-init-8x8.pickle")
-torch.onnx.export(netG, input_to_export, "DCGAN-init-8x8.onnx")
+torch.save(netG.state_dict(), "DCGAN-init-8x8-grayscale-for-1-with-reduced-dims.pickle")
+torch.onnx.export(netG, input_to_export, "DCGAN-init-8x8-grayscale-for-1-with-reduced-dims.onnx")
 
 ######################################################################
 # Training
@@ -661,8 +663,8 @@ for epoch in range(num_epochs):
 
 
 # @thoughtcodex / @timeemit Modified to export the trained DCGAN to an ONNX file
-torch.save(netG.state_dict(), "DCGAN-trained-8x8.pickle")
-torch.onnx.export(netG, input_to_export, "DCGAN-trained-8x8.onnx")
+torch.save(netG.state_dict(), "DCGAN-trained-8x8-grayscale-for-1-with-reduced-dims.pickle")
+torch.onnx.export(netG, input_to_export, "DCGAN-trained-8x8-grayscale-for-1-with-reduced-dims.onnx")
 
 ######################################################################
 # Results
