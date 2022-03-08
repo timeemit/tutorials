@@ -189,20 +189,20 @@ batch_size = 128
 image_size = 8  # @thoughtcodex / @timeemit -- Modified to reduce overall size of the model
 
 # Number of channels in the training images. For color images this is 3
-nc = 1  # @thoughtcodex / @timeemit -- Greyscale to reduce overall size of the model
+nc = 3
 
 # Size of z latent vector (i.e. size of generator input)
-nz = 1  # @thoughtcodex / @timeemit -- Modified from 100 to reduce overall size of the model
+nz = 100
 
 # Size of feature maps in generator
-ngf = 32
+ngf = 8
 
 # Size of feature maps in discriminator
-ndf = 32
+ndf = 8
 
 # Number of training epochs
 # @thoughtcodex / @timeemit Reducing for iteration velocity num_epochs = 5
-num_epochs = 1
+num_epochs = 5
 
 # Learning rate for optimizers
 lr = 0.0002
@@ -251,10 +251,10 @@ dataset = dset.ImageFolder(root=dataroot,
                            transform=transforms.Compose([
                                transforms.Resize(image_size),
                                transforms.CenterCrop(image_size),
-                               transforms.Grayscale(),  # @thoughtcodex / @timeemit Grayscale
+                               # transforms.Grayscale(),  # @thoughtcodex / @timeemit Grayscale
                                transforms.ToTensor(),
-                               transforms.Normalize((0.5), (0.5)),  # @thoughtcodex / @timeemit Grayscale
-                               # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                               # transforms.Normalize((0.5), (0.5)),  # @thoughtcodex / @timeemit Grayscale
+                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                            ]))
 # Create the dataloader
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
@@ -455,7 +455,6 @@ netD.apply(weights_init)
 # Print the model
 print(netD)
 
-
 ######################################################################
 # Loss Functions and Optimizers
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -506,10 +505,9 @@ fake_label = 0.
 optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
 
-
 # @thoughtcodex / @timeemit Modified to export the initialized DCGAN to an ONNX file
-torch.save(netG.state_dict(), "DCGAN-init-8x8-grayscale-for-1-with-reduced-dims.pickle")
-torch.onnx.export(netG, input_to_export, "DCGAN-init-8x8-grayscale-for-1-with-reduced-dims.onnx")
+torch.save(netG.state_dict(), "DCGAN-init-8x8-full.pickle")
+torch.onnx.export(netG, input_to_export, "DCGAN-init-8x8-full.onnx")
 
 ######################################################################
 # Training
