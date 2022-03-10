@@ -130,6 +130,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from IPython.display import HTML
+from PIL import Image
+
 
 # Set random seed for reproducibility
 manualSeed = 999
@@ -176,7 +178,8 @@ torch.manual_seed(manualSeed)
 # 
 
 # Root directory for dataset
-dataroot = "data/celeba"
+# dataroot = "beginner_source/data/celeba"
+dataroot = "data/image"
 
 # Number of workers for dataloader
 workers = 2
@@ -192,17 +195,16 @@ image_size = 8  # @thoughtcodex / @timeemit -- Modified to reduce overall size o
 nc = 3
 
 # Size of z latent vector (i.e. size of generator input)
-nz = 100
+nz = 4  # @thoughtcodex / @timeemit -- Modified to reduce the overall size of the model
 
 # Size of feature maps in generator
-ngf = 8
+ngf = 8  # @thoughtcodex / @timeemit -- Modified to reduce the overall size of the model
 
 # Size of feature maps in discriminator
-ndf = 8
+ndf = 16  # @thoughtcodex / @timeemit -- Modified to reduce the overall size of the model
 
 # Number of training epochs
-# @thoughtcodex / @timeemit Reducing for iteration velocity num_epochs = 5
-num_epochs = 5
+num_epochs = 200  # @thoughtcodex / @timeemit -- Modified to get more training in for emojis
 
 # Learning rate for optimizers
 lr = 0.0002
@@ -245,6 +247,15 @@ ngpu = 1
 # training data.
 #
 
+def alpha_loader(path):
+    with open(path, 'rb') as f:
+        color = (255, 255, 255)  # White
+        img = Image.open(f).convert('RGBA')
+        img.load()
+        background = Image.new('RGB', img.size, color)
+        background.paste(img, mask=img.split()[3])
+        return background
+
 # We can use an image folder dataset the way we have it setup.
 # Create the dataset
 dataset = dset.ImageFolder(root=dataroot,
@@ -253,9 +264,9 @@ dataset = dset.ImageFolder(root=dataroot,
                                transforms.CenterCrop(image_size),
                                # transforms.Grayscale(),  # @thoughtcodex / @timeemit Grayscale
                                transforms.ToTensor(),
-                               # transforms.Normalize((0.5), (0.5)),  # @thoughtcodex / @timeemit Grayscale
-                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                           ]))
+                               transforms.Normalize((0.5,) * nc, (0.5,) * nc),
+                           ]),
+                           loader=alpha_loader)
 # Create the dataloader
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                          shuffle=True, num_workers=workers)
@@ -338,26 +349,17 @@ class Generator(nn.Module):
         self.ngpu = ngpu
         self.main = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(nz, ngf, 4, 1, 0, bias=False),
-            # nn.ConvTranspose2d( nz, ngf * 8, 4, 1, 0, bias=False),
-            # nn.BatchNorm2d(ngf * 8),
-            # nn.ReLU(True),
-            # # state size. (ngf*8) x 4 x 4
-            # nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
-            # nn.BatchNorm2d(ngf * 4),
-            # nn.ReLU(True),
-            # # state size. (ngf*4) x 8 x 8
-            # nn.ConvTranspose2d( ngf * 4, ngf * 2, 4, 2, 1, bias=False),
-            # nn.BatchNorm2d(ngf * 2),
-            # nn.ReLU(True),
-            # # state size. (ngf*2) x 16 x 16
-            # nn.ConvTranspose2d( ngf * 2, ngf, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(nz, ngf * 2, 2, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 2),
+            nn.ReLU(True),
+            # (ngf*2) x 2 x 2
+            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
-            # state size. (ngf) x 32 x 32
-            nn.ConvTranspose2d( ngf, nc, 4, 2, 1, bias=False),
+            # (ngf) x 4 x 4
+            nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
             nn.Tanh()
-            # state size. (nc) x 64 x 64
+            # (nc) x 8 x 8
         )
 
     def forward(self, input):
@@ -412,23 +414,12 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
-            # input is (nc) x 64 x 64
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 32 x 32
-            # nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            # nn.BatchNorm2d(ndf * 2),
-            # nn.LeakyReLU(0.2, inplace=True),
-            # # state size. (ndf*2) x 16 x 16
-            # nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            # nn.BatchNorm2d(ndf * 4),
-            # nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 8 x 8
-            # nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-            # nn.BatchNorm2d(ndf * 8),
-            # nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(ndf, 1, 4, 1, 0, bias=False),
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ndf * 2, 1, 2, 1, 0, bias=False),
             nn.Sigmoid()
         )
 
@@ -506,8 +497,8 @@ optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
 
 # @thoughtcodex / @timeemit Modified to export the initialized DCGAN to an ONNX file
-torch.save(netG.state_dict(), "DCGAN-init-8x8-full.pickle")
-torch.onnx.export(netG, input_to_export, "DCGAN-init-8x8-full.onnx")
+torch.save(netG.state_dict(), "DCGAN-init-8x8-full-emoji.pickle")
+torch.onnx.export(netG, input_to_export, "DCGAN-init-8x8-full-emoji.onnx")
 
 ######################################################################
 # Training
@@ -579,14 +570,15 @@ torch.onnx.export(netG, input_to_export, "DCGAN-init-8x8-full.onnx")
 
 # Training Loop
 
-# Lists to keep track of progress
-img_list = []
-G_losses = []
-D_losses = []
-iters = 0
-
 def train():
     print("Starting Training Loop...")
+
+    # Lists to keep track of progress
+    img_list = []
+    G_losses = []
+    D_losses = []
+    iters = 0
+
     # For each epoch
     for epoch in range(num_epochs):
         # For each batch in the dataloader
@@ -662,8 +654,8 @@ def train():
 
 
     # @thoughtcodex / @timeemit Modified to export the trained DCGAN to an ONNX file
-    torch.save(netG.state_dict(), "DCGAN-trained-8x8-full.pickle")
-    torch.onnx.export(netG, input_to_export, "DCGAN-trained-8x8-full.onnx")
+    torch.save(netG.state_dict(), "DCGAN-trained-8x8-full-emoji.pickle")
+    torch.onnx.export(netG, input_to_export, "DCGAN-trained-8x8-full-emoji.onnx")
 
     ######################################################################
     # Results
@@ -725,14 +717,14 @@ def train():
     plt.axis("off")
     plt.title("Real Images")
     plt.imshow(np.transpose(vutils.make_grid(real_batch[0].to(device)[:64], padding=5, normalize=True).cpu(),(1,2,0)))
-    plt.savefig("real-images")
+    # plt.savefig("real-images")
 
     # Plot the fake images from the last epoch
     plt.subplot(1,2,2)
     plt.axis("off")
     plt.title("Fake Images")
     plt.imshow(np.transpose(img_list[-1],(1,2,0)))
-    plt.show("fake-images")
+    plt.savefig("training-and-fake-images")
 
 
     ######################################################################
