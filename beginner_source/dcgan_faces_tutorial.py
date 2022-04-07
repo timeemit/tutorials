@@ -189,22 +189,23 @@ batch_size = 128
 
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
-image_size = 32  # @thoughtcodex / @timeemit -- Modified to reduce overall size of the model
+image_size = 16  # @thoughtcodex / @timeemit -- Modified to reduce overall size of the model
 
 # Number of channels in the training images. For color images this is 3
-nc = 3
+# nc = 3
+nc = 1  # To force grayscale
 
 # Size of z latent vector (i.e. size of generator input)
 nz = 10  # @thoughtcodex / @timeemit -- Modified to reduce the overall size of the model
 
 # Size of feature maps in generator
-ngf = 32  # @thoughtcodex / @timeemit -- Modified to reduce the overall size of the model
+ngf = 4  # @thoughtcodex / @timeemit -- Modified to reduce the overall size of the model
 
 # Size of feature maps in discriminator
-ndf = 32  # @thoughtcodex / @timeemit -- Modified to reduce the overall size of the model
+ndf = 8  # @thoughtcodex / @timeemit -- Modified to reduce the overall size of the model
 
 # Number of training epochs
-num_epochs = 5  # @thoughtcodex / @timeemit -- Modified to get more training in for emojis
+num_epochs = 20  # @thoughtcodex / @timeemit -- Modified to get more training in for emojis
 
 # Learning rate for optimizers
 lr = 0.0002
@@ -262,7 +263,7 @@ dataset = dset.ImageFolder(root=dataroot,
                            transform=transforms.Compose([
                                transforms.Resize(image_size),
                                transforms.CenterCrop(image_size),
-                               # transforms.Grayscale(),  # @thoughtcodex / @timeemit Grayscale
+                               transforms.Grayscale(),  # @thoughtcodex / @timeemit Grayscale
                                transforms.ToTensor(),
                                transforms.Normalize((0.5,) * nc, (0.5,) * nc),
                            ]),
@@ -349,21 +350,17 @@ class Generator(nn.Module):
         self.ngpu = ngpu
         self.main = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(nz, ngf * 4, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(ngf * 4),
-            nn.ReLU(True),
-            # state size. (ngf*4) x 4 x 4
-            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(nz, ngf * 2, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
-            # state size. (ngf*2) x 8 x 8
+            # state size. (ngf*2) x 4 x 4
             nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
-            # (ngf) x 16 x 16
+            # (ngf) x 8 x 8
             nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
             nn.Tanh()
-            # (nc) x 32 x 32
+            # (nc) x 16 x 16
         )
 
     def forward(self, input):
@@ -418,19 +415,15 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
-            # input is (nc) x 32 x 32
+            # input is (nc) x 16 x 16
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 16 x 16
+            # state size. (ndf) x 8 x 8
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 8 x 8
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 4 x 4
-            nn.Conv2d(ndf * 4, 1, 4, 1, 0, bias=False),
+            # state size. (ndf*2) x 4 x 4
+            nn.Conv2d(ndf * 2, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
 
@@ -579,8 +572,14 @@ torch.onnx.export(netG, input_to_export, f"DCGAN-init-{image_size}x{image_size}-
 # run and if you removed some data from the dataset.
 #
 
-# Training Loop
+try:
+    PATH = "DCGAN-trained-16x16-full.pickle"
+    netG.load_state_dict(torch.load(PATH))
+    print(f"Loaded previously trained model.  Training for another {num_epochs} epochs.")
+except:
+    print(f"Could not find previously trained model at {PATH}.  Starting from scratch.")
 
+# Training Loop
 def train():
     print("Starting Training Loop...")
 

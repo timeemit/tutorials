@@ -25,7 +25,7 @@ from beginner_source.dcgan_faces_tutorial import (
     netG,
 )
 
-PATH = "DCGAN-trained-8x8-full-emoji.pickle"
+PATH = "DCGAN-trained-16x16-full.pickle"
 img_list = []
 netG.load_state_dict(torch.load(PATH))
 with torch.no_grad():

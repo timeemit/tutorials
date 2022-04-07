@@ -26,7 +26,7 @@ from beginner_source.dcgan_faces_tutorial import (
     input_to_export,
 )
 
-PATH = "DCGAN-init-64x64-full"
+PATH = "DCGAN-trained-16x16-full"
 netG.load_state_dict(torch.load(PATH + '.pickle'))
 layers = list(list(netG.children())[0].children())
 previous_layer_output = input_to_export
